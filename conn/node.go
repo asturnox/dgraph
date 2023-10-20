@@ -22,6 +22,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"fmt"
+	"github.com/dgraph-io/dgraph/tdslog"
 	"math/rand"
 	"strings"
 	"sync"
@@ -248,6 +249,13 @@ func (n *Node) Send(msg *raftpb.Message) {
 	x.AssertTruef(n.Id != msg.To, "Sending message to itself")
 	data, err := msg.Marshal()
 	x.Check(err)
+
+	switch msg.Type {
+	case raftpb.MsgApp:
+		tdslog.Log("Sending MsgApp. msg: %v to %d", msg, msg.To)
+	case raftpb.MsgAppResp:
+		tdslog.Log("Sending MsgAppResp. msg: %v to %d", msg, msg.To)
+	}
 
 	if glog.V(2) {
 		switch msg.Type {

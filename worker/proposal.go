@@ -19,6 +19,7 @@ package worker
 import (
 	"context"
 	"encoding/binary"
+	"github.com/dgraph-io/dgraph/tdslog"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -235,7 +236,7 @@ func (n *node) proposeAndWait(ctx context.Context, proposal *pb.Proposal) (perr 
 		defer n.Proposals.Delete(key) // Ensure that it gets deleted on return.
 
 		span.Annotatef(nil, "Proposing with key: %d. Timeout: %v", key, timeout)
-
+		tdslog.Log("Proposing. proposal: %v", proposal)
 		if err = n.Raft().Propose(cctx, data); err != nil {
 			return errors.Wrapf(err, "While proposing")
 		}

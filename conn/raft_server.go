@@ -19,6 +19,7 @@ package conn
 import (
 	"context"
 	"encoding/binary"
+	"github.com/dgraph-io/dgraph/tdslog"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -221,6 +222,14 @@ func (w *RaftServer) RaftMessage(server pb.Raft_RaftMessageServer) error {
 			if err := msg.Unmarshal(data[idx : idx+sz]); err != nil {
 				x.Check(err)
 			}
+
+			switch msg.Type {
+			case raftpb.MsgApp:
+				tdslog.Log("Received MsgApp. msg: %v from: %d", msg, msg.From)
+			case raftpb.MsgAppResp:
+				tdslog.Log("Received MsgAppResp. msg: %v from: %d", msg, msg.From)
+			}
+
 			// This should be done in order, and not via a goroutine.
 			// Step can block forever. See: https://github.com/etcd-io/etcd/issues/10585
 			// So, add a context with timeout to allow it to get out of the blockage.

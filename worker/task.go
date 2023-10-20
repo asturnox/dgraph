@@ -19,6 +19,7 @@ package worker
 import (
 	"bytes"
 	"context"
+	"github.com/dgraph-io/dgraph/tdslog"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,6 +57,8 @@ func invokeNetworkRequest(ctx context.Context, addr string,
 	if span := otrace.FromContext(ctx); span != nil {
 		span.Annotatef(nil, "invokeNetworkRequest: Sending request to %v", addr)
 	}
+	tdslog.Log("Sending network request to %v", addr)
+
 	c := pb.NewWorkerClient(pl.Get())
 	return f(ctx, c)
 }
@@ -149,6 +152,7 @@ func ProcessTaskOverNetwork(ctx context.Context, q *pb.Query) (*pb.Result, error
 		return processTask(ctx, q, gid)
 	}
 
+	tdslog.Log("Attempting to process task (query) over network. query: %v", q)
 	result, err := processWithBackupRequest(ctx, gid,
 		func(ctx context.Context, c pb.WorkerClient) (interface{}, error) {
 			return c.ServeTask(ctx, q)
@@ -876,6 +880,8 @@ const (
 
 // processTask processes the query, accumulates and returns the result.
 func processTask(ctx context.Context, q *pb.Query, gid uint32) (*pb.Result, error) {
+	tdslog.Log("Processing Task (Query) internally. query: %v, gid: %d", q, gid)
+
 	ctx, span := otrace.StartSpan(ctx, "processTask."+q.Attr)
 	defer span.End()
 
@@ -1939,6 +1945,8 @@ func parseSrcFn(ctx context.Context, q *pb.Query) (*functionContext, error) {
 
 // ServeTask is used to respond to a query.
 func (w *grpcWorker) ServeTask(ctx context.Context, q *pb.Query) (*pb.Result, error) {
+	tdslog.Log("Received request to serve task (query). query: %v", q)
+
 	ctx, span := otrace.StartSpan(ctx, "worker.ServeTask")
 	defer span.End()
 
@@ -1988,6 +1996,7 @@ func (w *grpcWorker) ServeTask(ctx context.Context, q *pb.Query) (*pb.Result, er
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case reply := <-c:
+		tdslog.Log("Replying to query. query: %v reply: %v", q, reply)
 		return reply.result, reply.err
 	}
 }
